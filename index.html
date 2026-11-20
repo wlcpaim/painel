@@ -182,7 +182,7 @@
             </div>
             <p id="emailError" class="hidden text-xs text-rose-400 mt-1 flex items-center gap-1">
               <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-              <span>Por favor, insira um e-mail válido.</span>
+              <span id="emailErrorText">Por favor, insira um e-mail válido.</span>
             </p>
           </div>
 
@@ -213,7 +213,7 @@
                 type="button"
                 id="togglePassword"
                 aria-label="Mostrar ou ocultar senha"
-                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
               >
                 <i data-lucide="eye" id="eyeIcon" class="w-4 h-4"></i>
               </button>
@@ -280,7 +280,7 @@
     <!-- Backdrop escuro para mobile quando a sidebar abre -->
     <div
       id="mobileBackdrop"
-      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"
+      class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-30 hidden md:hidden transition-opacity cursor-pointer"
       aria-hidden="true"
     ></div>
 
@@ -305,7 +305,7 @@
         <button
           type="button"
           id="closeSidebarBtn"
-          class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           aria-label="Fechar menu lateral"
         >
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -371,7 +371,7 @@
             id="sidebarLogoutBtn"
             title="Sair do painel"
             aria-label="Sair da conta"
-            class="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ml-1 shrink-0"
+            class="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ml-1 shrink-0 cursor-pointer"
           >
             <i data-lucide="log-out" class="w-4 h-4"></i>
           </button>
@@ -390,7 +390,7 @@
           <button
             type="button"
             id="openSidebarBtn"
-            class="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            class="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label="Abrir menu lateral"
           >
             <i data-lucide="menu" class="w-5 h-5"></i>
@@ -573,7 +573,7 @@
             <p class="text-xs text-slate-400">Cadastre um assistente salvo no banco de dados</p>
           </div>
         </div>
-        <button type="button" id="closeCreateBotModalBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+        <button type="button" id="closeCreateBotModalBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -640,7 +640,7 @@
           <button
             type="button"
             id="cancelCreateBotBtn"
-            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition-colors"
+            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -662,18 +662,18 @@
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
         <h3 id="modalTitle" class="font-display font-semibold text-base text-white">Guia do Bot Studio</h3>
-        <button type="button" id="closeModalBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+        <button type="button" id="closeModalBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <p id="modalBody" class="text-sm text-slate-300 leading-relaxed mb-6">
+      <p id="modalBody" class="text-sm text-slate-300 leading-relaxed mb-6 whitespace-pre-line">
         Informações da documentação.
       </p>
       <div class="flex justify-end gap-2">
         <button
           type="button"
           id="confirmModalBtn"
-          class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-medium text-white transition-colors"
+          class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-medium text-white transition-colors cursor-pointer"
         >
           Entendido
         </button>
@@ -693,6 +693,9 @@
       const LOCAL_USERS_KEY = 'bot_studio_users_cache';
       const LOCAL_BOTS_KEY = 'bot_studio_bots_cache';
 
+      // Fallback em memória para ambientes com restrição de storage
+      let inMemorySession = null;
+
       // Estado interno da autenticação: 'login' ou 'register'
       let authMode = 'login';
 
@@ -709,6 +712,7 @@
       const authSubtitle = document.getElementById('authSubtitle');
       const nameError = document.getElementById('nameError');
       const emailError = document.getElementById('emailError');
+      const emailErrorText = document.getElementById('emailErrorText');
       const passwordError = document.getElementById('passwordError');
       const passwordErrorMsg = document.getElementById('passwordErrorMsg');
       const togglePasswordBtn = document.getElementById('togglePassword');
@@ -767,6 +771,40 @@
       document.querySelectorAll('.currentYearCopy').forEach(el => el.textContent = year);
 
       // ----------------------------------------
+      // GERENCIAMENTO DE SESSÃO MULTI-CAMADA
+      // ----------------------------------------
+      function getAuthSession() {
+        if (inMemorySession) return inMemorySession;
+        try {
+          const sessionRaw = sessionStorage.getItem(AUTH_STORAGE_KEY);
+          if (sessionRaw) {
+            inMemorySession = JSON.parse(sessionRaw);
+            return inMemorySession;
+          }
+        } catch (e) {}
+        try {
+          const localRaw = localStorage.getItem(AUTH_STORAGE_KEY);
+          if (localRaw) {
+            inMemorySession = JSON.parse(localRaw);
+            return inMemorySession;
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      function setAuthSession(sessionData) {
+        inMemorySession = sessionData;
+        try { sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData)); } catch (e) {}
+        try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData)); } catch (e) {}
+      }
+
+      function clearAuthSession() {
+        inMemorySession = null;
+        try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
+        try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
+      }
+
+      // ----------------------------------------
       // CAMADA DE ACESSO AO BANCO DE DADOS (WLC.DB)
       // ----------------------------------------
       const DB = {
@@ -774,12 +812,20 @@
           return typeof window.wlcDb !== 'undefined' && typeof window.wlcDb.collection === 'function';
         },
 
+        // Executa promessa com timeout seguro para nunca congelar
+        withTimeout(promise, ms = 3000) {
+          return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout')), ms))
+          ]);
+        },
+
         // --- USUÁRIOS ---
         async listUsers() {
           let list = [];
           if (this.hasWlcDb()) {
             try {
-              const res = await window.wlcDb.collection('usuarios').list();
+              const res = await this.withTimeout(window.wlcDb.collection('usuarios').list(), 3000);
               if (Array.isArray(res)) list = res;
             } catch (err) {
               console.warn('[DB] Fallback para cache local de usuários:', err);
@@ -800,13 +846,12 @@
           let created = null;
           if (this.hasWlcDb()) {
             try {
-              created = await window.wlcDb.collection('usuarios').create(user);
+              created = await this.withTimeout(window.wlcDb.collection('usuarios').create(user), 4000);
             } catch (err) {
               console.warn('[DB] Erro ao salvar usuário no WLC.DB:', err);
             }
           }
 
-          // Salva também no cache local garantindo resiliência
           try {
             const current = await this.listUsers();
             const record = created || { ...user, id: 'usr_' + Date.now() };
@@ -823,7 +868,7 @@
           let list = [];
           if (this.hasWlcDb()) {
             try {
-              const res = await window.wlcDb.collection('bots').list();
+              const res = await this.withTimeout(window.wlcDb.collection('bots').list(), 3000);
               if (Array.isArray(res)) list = res;
             } catch (err) {
               console.warn('[DB] Fallback para cache local de bots:', err);
@@ -844,7 +889,7 @@
           let created = null;
           if (this.hasWlcDb()) {
             try {
-              created = await window.wlcDb.collection('bots').create(bot);
+              created = await this.withTimeout(window.wlcDb.collection('bots').create(bot), 4000);
             } catch (err) {
               console.warn('[DB] Erro ao salvar bot no WLC.DB:', err);
             }
@@ -880,41 +925,12 @@
                 role: 'admin',
                 createdAt: new Date().toISOString()
               });
-              console.log('[DB] Usuário administrador padrão inicializado.');
             }
           } catch (e) {
-            console.error('[DB] Erro na inicialização do banco:', e);
+            console.warn('[DB] Inicialização em modo resiliente:', e);
           }
         }
       };
-
-      // ----------------------------------------
-      // GERENCIAMENTO DE SESSÃO DO USUÁRIO
-      // ----------------------------------------
-      function getAuthSession() {
-        try {
-          const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-          return raw ? JSON.parse(raw) : null;
-        } catch (e) {
-          return null;
-        }
-      }
-
-      function setAuthSession(sessionData) {
-        try {
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
-        } catch (e) {
-          console.error('Falha ao salvar sessão:', e);
-        }
-      }
-
-      function clearAuthSession() {
-        try {
-          localStorage.removeItem(AUTH_STORAGE_KEY);
-        } catch (e) {
-          console.error('Falha ao limpar sessão:', e);
-        }
-      }
 
       // ----------------------------------------
       // TOAST FEEDBACK
@@ -937,7 +953,7 @@
 
         toast.innerHTML = `
           <i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i>
-          <span>${message}</span>
+          <span>${escapeHtml(message)}</span>
         `;
         toastContainer.appendChild(toast);
         lucide.createIcons({ root: toast });
@@ -961,7 +977,7 @@
         modalTitle.textContent = title;
         modalBody.textContent = message;
         actionModal.classList.remove('hidden');
-        lucide.createIcons();
+        lucide.createIcons({ root: actionModal });
       }
 
       function closeModal() {
@@ -1023,7 +1039,57 @@
         const isPassword = passwordInput.type === 'password';
         passwordInput.type = isPassword ? 'text' : 'password';
         eyeIcon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+        lucide.createIcons({ root: togglePasswordBtn });
+      });
+
+      // ----------------------------------------
+      // NAVEGADOR DE ROTAS SPA RESILIENTE
+      // ----------------------------------------
+      function navigateTo(hash) {
+        if (window.location.hash !== hash) {
+          window.location.hash = hash;
+        }
+        // Executa imediatamente sem depender do disparo do evento de hash do browser
+        route();
+      }
+
+      async function route() {
+        const hash = (window.location.hash || '').toLowerCase();
+        const session = getAuthSession();
+
+        if (!session) {
+          // Não autenticado: força a visualização do login
+          if (hash !== '#login' && hash !== '') {
+            window.location.hash = '#login';
+          }
+          viewDashboard.classList.add('hidden');
+          viewLogin.classList.remove('hidden');
+        } else {
+          // Autenticado: direciona para dashboard
+          if (hash === '' || hash === '#login' || hash === '#/') {
+            window.location.hash = '#dashboard';
+          }
+          
+          // Preenche dados do usuário logado
+          const email = session.email || 'admin@botstudio.com';
+          const name = session.name || email.split('@')[0];
+          userNameDisplay.textContent = name;
+          userEmailDisplay.textContent = email;
+          userAvatarText.textContent = name.slice(0, 2).toUpperCase();
+
+          viewLogin.classList.add('hidden');
+          viewDashboard.classList.remove('hidden');
+
+          // Renderiza bots cadastrados
+          await renderBots();
+        }
+
         lucide.createIcons();
+      }
+
+      // Monitora mudanças manuais de hash na URL
+      window.addEventListener('hashchange', () => {
+        route();
       });
 
       // ----------------------------------------
@@ -1048,12 +1114,13 @@
         // Validação de e-mail
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailVal || !emailRegex.test(emailVal)) {
+          emailErrorText.textContent = 'Por favor, insira um e-mail válido.';
           emailError.classList.remove('hidden');
           emailInput.classList.add('border-rose-500');
           hasError = true;
         }
 
-        // Validação de senha (mínimo 4 caracteres para teste/login, 6 para novos cadastros)
+        // Validação de senha
         const minPass = authMode === 'register' ? 6 : 4;
         if (!passVal || passVal.length < minPass) {
           passwordErrorMsg.textContent = authMode === 'register' 
@@ -1087,7 +1154,7 @@
               btnIcon.classList.remove('hidden');
               btnSpinner.classList.add('hidden');
 
-              emailError.querySelector('span').textContent = 'Este e-mail já está cadastrado no sistema.';
+              emailErrorText.textContent = 'Este e-mail já está cadastrado no sistema.';
               emailError.classList.remove('hidden');
               emailInput.classList.add('border-rose-500');
               showToast('E-mail já cadastrado. Tente entrar com sua senha.', 'error');
@@ -1114,17 +1181,18 @@
             setAuthSession(sessionData);
 
             showToast('Conta criada com sucesso no banco de dados!', 'success');
+            
+            // Redirecionamento direto e imediato
             setTimeout(() => {
-              window.location.hash = '#dashboard';
-            }, 300);
+              navigateTo('#dashboard');
+            }, 150);
 
           } else {
-            // Modo Login: Autenticar contra o banco
-            const user = users.find(u => (u.email || '').toLowerCase() === emailVal);
-
-            // Se for o admin inicial e o banco ainda estiver vazio
+            // Modo Login: Autenticar contra o banco ou credencial padrão
             let authenticated = false;
             let currentRecord = null;
+
+            const user = users.find(u => (u.email || '').toLowerCase() === emailVal);
 
             if (user && user.password === passVal) {
               authenticated = true;
@@ -1149,21 +1217,23 @@
 
             // Salvar sessão
             const sessionData = {
-              name: currentRecord.name || emailVal.split('@')[0],
+              name: currentRecord.name || (emailVal === 'admin@botstudio.com' ? 'Administrador' : emailVal.split('@')[0]),
               email: currentRecord.email || emailVal,
               loggedAt: new Date().toISOString()
             };
             setAuthSession(sessionData);
 
-            showToast('Login autenticado com sucesso!', 'success');
+            showToast('Login autenticado com sucesso! Entrando...', 'success');
+            
+            // Redirecionamento direto e imediato
             setTimeout(() => {
-              window.location.hash = '#dashboard';
-            }, 300);
+              navigateTo('#dashboard');
+            }, 150);
           }
 
         } catch (err) {
           console.error('[AUTH ERROR]', err);
-          showToast('Erro de conexão ao autenticar. Tente novamente.', 'error');
+          showToast('Erro ao processar autenticação. Tente novamente.', 'error');
         } finally {
           submitBtn.disabled = false;
           btnText.textContent = authMode === 'login' ? 'Entrar no Painel' : 'Criar Conta e Acessar';
@@ -1173,43 +1243,33 @@
       });
 
       // ----------------------------------------
-      // ROTEADOR SPA (HASH-BASED)
+      // LOGOUT SEGURO
       // ----------------------------------------
-      async function route() {
-        const hash = window.location.hash.toLowerCase();
-        const session = getAuthSession();
-
-        if (!session) {
-          if (hash !== '#login') {
-            window.location.hash = '#login';
-            return;
-          }
-          viewLogin.classList.remove('hidden');
-          viewDashboard.classList.add('hidden');
-        } else {
-          if (hash === '' || hash === '#login' || hash === '#/') {
-            window.location.hash = '#dashboard';
-            return;
-          }
-
-          // Preencher dados do usuário
-          const email = session.email || 'admin@botstudio.com';
-          const name = session.name || email.split('@')[0];
-          userNameDisplay.textContent = name;
-          userEmailDisplay.textContent = email;
-          userAvatarText.textContent = name.slice(0, 2).toUpperCase();
-
-          viewLogin.classList.add('hidden');
-          viewDashboard.classList.remove('hidden');
-
-          // Carregar bots do banco de dados para a dashboard
-          await renderBots();
-        }
-
-        lucide.createIcons();
+      function handleLogout() {
+        clearAuthSession();
+        showToast('Sessão encerrada com sucesso.', 'info');
+        navigateTo('#login');
       }
 
-      window.addEventListener('hashchange', route);
+      headerLogoutBtn.addEventListener('click', handleLogout);
+      sidebarLogoutBtn.addEventListener('click', handleLogout);
+
+      // ----------------------------------------
+      // SIDEBAR MOBILE CONTROLS
+      // ----------------------------------------
+      function openMobileSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        mobileBackdrop.classList.remove('hidden');
+      }
+
+      function closeMobileSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        mobileBackdrop.classList.add('hidden');
+      }
+
+      openSidebarBtn.addEventListener('click', openMobileSidebar);
+      closeSidebarBtn.addEventListener('click', closeMobileSidebar);
+      mobileBackdrop.addEventListener('click', closeMobileSidebar);
 
       // ----------------------------------------
       // RENDERIZAÇÃO DE BOTS A PARTIR DO BANCO
@@ -1263,7 +1323,7 @@
                 </div>
                 <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
                   <span>Criado em: ${createdDate}</span>
-                  <button type="button" class="botDetailBtn text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 transition-colors">
+                  <button type="button" class="botDetailBtn text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer">
                     <span>Configurar</span>
                     <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
                   </button>
@@ -1344,7 +1404,7 @@
             model,
             description,
             status: 'active',
-            createdBy: session ? session.email : 'admin',
+            createdBy: session ? session.email : 'admin@botstudio.com',
             createdAt: new Date().toISOString()
           };
 
@@ -1363,58 +1423,40 @@
       });
 
       // ----------------------------------------
-      // LOGOUT
+      // MODAL DE AJUDA & ESQUECEU A SENHA
       // ----------------------------------------
-      function handleLogout() {
-        if (confirm('Deseja realmente encerrar sua sessão?')) {
-          clearAuthSession();
-          showToast('Sessão encerrada com sucesso.', 'info');
-          window.location.hash = '#login';
-          closeMobileSidebar();
-        }
+      if (docsBtn) {
+        docsBtn.addEventListener('click', () => {
+          openModal(
+            'Guia de Uso & Documentação',
+            'Bem-vindo ao Bot Studio!\n\n1. O painel conecta diretamente às coleções de dados "usuarios" e "bots".\n2. Para criar um assistente, clique em "Criar Novo Bot", selecione o canal (WhatsApp, Telegram, etc.) e o modelo LLM desejado.\n3. Todos os bots salvos persistem em tempo real no banco de dados isolado.'
+          );
+        });
       }
 
-      headerLogoutBtn.addEventListener('click', handleLogout);
-      sidebarLogoutBtn.addEventListener('click', handleLogout);
-
-      // ----------------------------------------
-      // SIDEBAR MOBILE TOGGLE
-      // ----------------------------------------
-      function openMobileSidebar() {
-        sidebar.classList.remove('-translate-x-full');
-        mobileBackdrop.classList.remove('hidden');
+      if (forgotPassBtn) {
+        forgotPassBtn.addEventListener('click', () => {
+          openModal(
+            'Recuperação de Acesso',
+            'Para redefinir sua credencial ou acessar o ambiente de testes:\n\n• Use o acesso pré-configurado:\n  E-mail: admin@botstudio.com\n  Senha: 123456\n\n• Ou crie uma nova conta clicando na aba "Criar Conta" acima.'
+          );
+        });
       }
 
-      function closeMobileSidebar() {
-        sidebar.classList.add('-translate-x-full');
-        mobileBackdrop.classList.add('hidden');
-      }
-
-      openSidebarBtn.addEventListener('click', openMobileSidebar);
-      closeSidebarBtn.addEventListener('click', closeMobileSidebar);
-      mobileBackdrop.addEventListener('click', closeMobileSidebar);
-
       // ----------------------------------------
-      // AÇÕES AUXILIARES
+      // INICIALIZAÇÃO DA APLICAÇÃO
       // ----------------------------------------
-      docsBtn.addEventListener('click', () => {
-        openModal(
-          'Documentação do Bot Studio',
-          'Aprenda como conectar Webhooks reais, integrar chaves de API, definir parâmetros de temperatura e regras de roteamento para seus bots.'
-        );
-      });
-
-      forgotPassBtn.addEventListener('click', () => {
-        showToast('Instruções de redefinição enviadas para o e-mail informado.', 'info');
-      });
-
-      // ----------------------------------------
-      // INICIALIZAÇÃO GERAL
-      // ----------------------------------------
-      DB.init().then(() => {
-        lucide.createIcons();
+      window.addEventListener('DOMContentLoaded', async () => {
+        // Inicializa o banco de dados com usuário seed se necessário
+        await DB.init();
+        // Roteia para a tela correta imediatamente
         route();
       });
+
+      // Garantia de execução se o DOM já carregou
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        DB.init().then(() => route());
+      }
 
     })();
   </script>
